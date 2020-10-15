@@ -1,8 +1,6 @@
-/* global fetch */
-import React, {useEffect, useState, useRef} from 'react';
+import React, {useState, useRef} from 'react';
 import {render} from 'react-dom';
 
-// import {StaticMap} from 'react-map-gl';
 import DeckGL from '@deck.gl/react';
 import {ScenegraphLayer} from '@deck.gl/mesh-layers';
 
@@ -15,28 +13,19 @@ import {sceneBuilder} from './scene';
 
 registerLoaders([GLTFLoader]);
 
-// Set your mapbox token here
-// const MAPBOX_TOKEN = process.env.MapboxAccessToken; // eslint-disable-line
-// mapbox style file path
-const MAPBOX_STYLE =
-  'https://rivulet-zhang.github.io/dataRepo/mapbox/style/map-style-dark-v9-no-labels.json';
-
-// Data provided by the OpenSky Network, http://www.opensky-network.org
-const DATA_URL = 'https://opensky-network.org/api/states/all';
 const MODEL_URL =
   'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/BoxAnimated/glTF-Binary/BoxAnimated.glb';
-const REFRESH_TIME = 30000;
 
 const ANIMATIONS = {
   '*': {speed: 5}
 };
 
 const INITIAL_VIEW_STATE = {
-  latitude: 33.856100706603456,
-  longitude: -118.20260976702586,
+  latitude: 37.78,
+  longitude: -122.45,
   zoom: 10.62345478102812,
   maxZoom: 16,
-  bearing: -9.294320137693632,
+  bearing: 0,
   pitch: 60
 };
 
@@ -55,115 +44,25 @@ const encoderSettings = {
   }
 };
 
-// const INITIAL_VIEW_STATE = {
-//   latitude: 39.1,
-//   longitude: -94.57,
-//   zoom: 3.8,
-//   maxZoom: 16,
-//   pitch: 0,
-//   bearing: 0
-// };
-
-const DATA_INDEX = {
-  UNIQUE_ID: 0,
-  CALL_SIGN: 1,
-  ORIGIN_COUNTRY: 2,
-  LONGITUDE: 5,
-  LATITUDE: 6,
-  BARO_ALTITUDE: 7,
-  VELOCITY: 9,
-  TRUE_TRACK: 10,
-  VERTICAL_RATE: 11,
-  GEO_ALTITUDE: 13,
-  POSITION_SOURCE: 16
-};
-
-function verticalRateToAngle(object) {
-  // Return: -90 looking up, +90 looking down
-  const verticalRate = object[DATA_INDEX.VERTICAL_RATE] || 0;
-  const velocity = object[DATA_INDEX.VELOCITY] || 0;
-  return (-Math.atan2(verticalRate, velocity) * 180) / Math.PI;
-}
-
-function getTooltip({object}) {
-  return (
-    object &&
-    `\
-    Call Sign: ${object[DATA_INDEX.CALL_SIGN] || ''}
-    Country: ${object[DATA_INDEX.ORIGIN_COUNTRY] || ''}
-    Vertical Rate: ${object[DATA_INDEX.VERTICAL_RATE] || 0} m/s
-    Velocity: ${object[DATA_INDEX.VELOCITY] || 0} m/s
-    Direction: ${object[DATA_INDEX.TRUE_TRACK] || 0}`
-  );
-}
-
-export default function App({sizeScale = 25, onDataLoad, mapStyle = MAPBOX_STYLE}) {
-  const [data, setData] = useState(null);
-  // const [timer, setTimer] = useState({});
-
+export default function App({sizeScale = 25}) {
   const deckgl = useRef(null);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const nextFrame = useNextFrame();
 
-  useEffect(
-    () => {
-      fetch(DATA_URL)
-        .then(resp => resp.json())
-        .then(resp => {
-          if (resp && resp.states /* && timer.id !== null*/) {
-            // In order to keep the animation smooth we need to always return the same
-            // objects in the exact same order. This function will discard new objects
-            // and only update existing ones.
-            let sortedData = resp.states;
-            if (data) {
-              const dataAsObj = {};
-              sortedData.forEach(entry => (dataAsObj[entry[DATA_INDEX.UNIQUE_ID]] = entry));
-              sortedData = data.map(entry => dataAsObj[entry[DATA_INDEX.UNIQUE_ID]] || entry);
-            }
-
-            setData(sortedData);
-
-            if (onDataLoad) {
-              onDataLoad(sortedData.length);
-            }
-          }
-        });
-      // .finally(() => {
-      //   timer.nextTimeoutId = setTimeout(() => setTimer({id: timer.nextTimeoutId}), REFRESH_TIME);
-      // });
-
-      return () => {
-        // clearTimeout(timer.nextTimeoutId);
-        // timer.id = null;
-      };
-    },
-    []
-    // [timer]
-  );
-
-  const layer =
-    data &&
-    new ScenegraphLayer({
-      id: 'scenegraph-layer',
-      data,
-      pickable: true,
-      sizeScale,
-      scenegraph: MODEL_URL,
-      _animations: ANIMATIONS,
-      sizeMinPixels: 25,
-      sizeMaxPixels: 40,
-      _lighting: 'pbr',
-      getPosition: d => [
-        d[DATA_INDEX.LONGITUDE] || 0,
-        d[DATA_INDEX.LATITUDE] || 0,
-        d[DATA_INDEX.GEO_ALTITUDE] || 0
-      ],
-      getOrientation: d => [verticalRateToAngle(d), -d[DATA_INDEX.TRUE_TRACK] || 0, 90],
-      transitions: {
-        getPosition: REFRESH_TIME * 0.9
-      }
-    });
+  const layer = new ScenegraphLayer({
+    id: 'scenegraph-layer',
+    data: 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/website/bart-stations.json',
+    pickable: true,
+    sizeScale,
+    scenegraph: MODEL_URL,
+    _animations: ANIMATIONS,
+    sizeMinPixels: 25,
+    sizeMaxPixels: 40,
+    _lighting: 'pbr',
+    getPosition: d => d.coordinates,
+    getOrientation: d => [0, Math.random() * 180, 90]
+  });
 
   return (
     <>
@@ -172,7 +71,6 @@ export default function App({sizeScale = 25, onDataLoad, mapStyle = MAPBOX_STYLE
         layers={[layer]}
         initialViewState={INITIAL_VIEW_STATE}
         controller={true}
-        getTooltip={getTooltip}
         {...adapter.getProps(deckgl, setReady, nextFrame)}
       />
       <div style={{position: 'absolute'}}>
@@ -192,3 +90,48 @@ export default function App({sizeScale = 25, onDataLoad, mapStyle = MAPBOX_STYLE
 export function renderToDOM(container) {
   render(<App />, container);
 }
+
+// import React from 'react';
+// import {render} from 'react-dom';
+// import DeckGL from '@deck.gl/react';
+// import {ScenegraphLayer} from '@deck.gl/mesh-layers';
+// import {GLTFLoader} from '@loaders.gl/gltf';
+// import {registerLoaders} from '@loaders.gl/core';
+// registerLoaders([GLTFLoader]);
+// const INITIAL_VIEW_STATE = {
+//   latitude: 37.78,
+//   longitude: -122.45,
+//   zoom: 10.62345478102812,
+//   maxZoom: 16,
+//   bearing: 0,
+//   pitch: 60
+// };
+// export default function App() {
+//   const layer =
+//     new ScenegraphLayer({
+//       id: 'scenegraph-layer',
+//       data: 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/website/bart-stations.json',
+//       pickable: true,
+//       sizeScale: 25,
+//       scenegraph: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/BoxAnimated/glTF-Binary/BoxAnimated.glb',
+//       _animations: {
+//         '*': {speed: 5}
+//       },
+//       sizeMinPixels: 25,
+//       sizeMaxPixels: 40,
+//       _lighting: 'pbr',
+//       getPosition: d => d.coordinates,
+//       getOrientation: d => [0, Math.random() * 180, 90]
+//     });
+//   return (
+//     <DeckGL
+//       layers={[layer]}
+//       initialViewState={INITIAL_VIEW_STATE}
+//       controller={true}
+//       getTooltip={() => null}
+//     />
+//   );
+// }
+// export function renderToDOM(container) {
+//   render(<App />, container);
+// }

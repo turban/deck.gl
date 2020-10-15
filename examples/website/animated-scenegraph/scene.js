@@ -7,16 +7,16 @@ export async function sceneBuilder(animationLoop) {
       timings: [0, 5000],
       keyframes: [
         {
-          latitude: 33.856100706603456,
-          longitude: -118.20260976702586,
+          latitude: 37.78,
+          longitude: -122.45,
           zoom: 10.62345478102812,
           maxZoom: 16,
           bearing: -9.294320137693632,
           pitch: 60
         },
         {
-          latitude: 33.856100706603456,
-          longitude: -118.20260976702586,
+          latitude: 37.78,
+          longitude: -122.45,
           zoom: 10.62345478102812,
           maxZoom: 16,
           bearing: -15,
