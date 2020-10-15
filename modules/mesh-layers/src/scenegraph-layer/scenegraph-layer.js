@@ -241,9 +241,15 @@ export default class ScenegraphLayer extends Layer {
   draw({moduleParameters = null, parameters = {}, context}) {
     if (!this.state.scenegraph) return;
 
-    if (this.props._animations && this.state.animator) {
-      this.state.animator.animate(context.animationProps.time);
+    // Works
+    if (this.props._animations && this.state.animator && context.deck) {
+      this.state.animator.animate(context.deck.animationLoop.timeline.getTime());
     }
+
+    // Doesn't Work
+    // if (this.props._animations && this.state.animator) {
+    //   this.state.animator.animate(context.timeline.getTime());
+    // }
 
     const {viewport} = this.context;
     const {sizeScale, sizeMinPixels, sizeMaxPixels, opacity, coordinateSystem} = this.props;
